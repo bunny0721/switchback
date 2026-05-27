@@ -1,15 +1,15 @@
-"""Tests for switchback.decisions (Neyman-type closed-form decide)."""
+"""Tests for switchback.decisions (Neyman-type closed-form inference)."""
 
 import numpy as np
 import pytest
 
 from switchback.decisions import (
     HACVariance,
-    DecisionResult,
+    InferenceResult,
     confidence_interval,
     block_confidence_interval,
     block_variance,
-    decide,
+    inference,
     normal_ci,
 )
 from switchback.design import (
@@ -27,7 +27,7 @@ from switchback.estimators import HajekEstimator, IPWEstimator
 # ---------------------------------------------------------------------------
 
 def test_point_estimate_matches_estimator():
-    """The point estimate stored on the decide object equals the
+    """The point estimate stored on the inference object equals the
     estimator's own estimate on the original (W, Y)."""
     design = BernoulliDesign(l=2, seed=0)
     W = design.sample(50)
@@ -256,7 +256,7 @@ def test_normal_ci_matches_HACVariance_confidence_interval():
 # Hájek dispatch — asymptotic Neyman variance
 # ===========================================================================
 
-def test_hajek_decide_point_estimate_matches_estimator():
+def test_hajek_inference_point_estimate_matches_estimator():
     design = BernoulliDesign(l=2, seed=0)
     W = design.sample(50)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
@@ -318,7 +318,7 @@ def test_hajek_variance_smaller_than_ipw_when_levels_are_high():
     assert v_hajek < v_ipw
 
 
-def test_hajek_decide_handles_one_obs_per_arm_gracefully():
+def test_hajek_inference_handles_one_obs_per_arm_gracefully():
     """The joint-HAC influence is well-defined with one observation per
     arm (each ξ_b becomes 0 since Y_b equals its arm mean), so the
     variance is reported as 0 rather than raising. The point estimate is
@@ -358,10 +358,10 @@ def test_hajek_coverage_under_simple_dgp():
 
 
 # ===========================================================================
-# Decisions under CompleteRandomization
+# Inference under CompleteRandomization
 # ===========================================================================
 
-def test_decide_accepts_complete_randomization():
+def test_inference_accepts_complete_randomization():
     """HACVariance must accept CompleteRandomization for both
     estimator types."""
     design = CompleteRandomization(l=2, seed=0)
@@ -966,17 +966,17 @@ def test_block_variance_calibrated_under_seasonal_baseline():
 
 
 # ===========================================================================
-# decide: one-call front door (estimate + variance + CI, design-dispatched)
+# inference: one-call front door (estimate + variance + CI, design-dispatched)
 # ===========================================================================
 
-def test_decide_returns_DecisionResult_with_all_fields():
-    """decide returns an DecisionResult dataclass with .estimate,
+def test_inference_returns_InferenceResult_with_all_fields():
+    """inference returns an InferenceResult dataclass with .estimate,
     .variance, .ci, .alpha populated."""
     design = AdaptiveBlockDesign(B=24, rho=0.5, seed=0)
     W = design.sample(672)
     Y = SimpleDGP(mu=0.0, tau=1.0, sigma=1.0, seed=0).generate(W)
-    result = decide(design, IPWEstimator(design, m=1), W, Y, alpha=0.05)
-    assert isinstance(result, DecisionResult)
+    result = inference(design, IPWEstimator(design, m=1), W, Y, alpha=0.05)
+    assert isinstance(result, InferenceResult)
     assert isinstance(result.estimate, float)
     assert isinstance(result.variance, float) and result.variance >= 0
     assert isinstance(result.ci, tuple) and len(result.ci) == 2
@@ -985,15 +985,15 @@ def test_decide_returns_DecisionResult_with_all_fields():
     assert result.alpha == 0.05
 
 
-def test_decide_dispatches_block_variance_for_adaptive_block_design():
-    """For AdaptiveBlockDesign, decide must use block_variance under
+def test_inference_dispatches_block_variance_for_adaptive_block_design():
+    """For AdaptiveBlockDesign, inference must use block_variance under
     the hood (not HAC, which would reject this design at construction)."""
     design = AdaptiveBlockDesign(B=24, rho=0.5, seed=0)
     W = design.sample(672)
     Y = SimpleDGP(mu=0.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design, m=1)
-    # decide's variance should match block_variance exactly
-    result = decide(design, est, W, Y, alpha=0.05)
+    # inference's variance should match block_variance exactly
+    result = inference(design, est, W, Y, alpha=0.05)
     direct_v = block_variance(design, W, Y)
     assert result.variance == pytest.approx(direct_v)
     # And the point estimate matches a direct estimator.fit
@@ -1001,49 +1001,49 @@ def test_decide_dispatches_block_variance_for_adaptive_block_design():
     assert result.estimate == pytest.approx(direct_est)
 
 
-def test_decide_dispatches_HACVariance_for_bernoulli_design():
-    """For BernoulliDesign, decide must use HACVariance under the
+def test_inference_dispatches_HACVariance_for_bernoulli_design():
+    """For BernoulliDesign, inference must use HACVariance under the
     hood."""
     design = BernoulliDesign(l=4, seed=0)
     W = design.sample(80)
     Y = SimpleDGP(mu=1.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design, m=3)
-    result = decide(design, est, W, Y, alpha=0.05)
+    result = inference(design, est, W, Y, alpha=0.05)
     direct = HACVariance(design, est).fit(W, Y)
     assert result.estimate == pytest.approx(direct.estimate_)
     assert result.variance == pytest.approx(direct.variance_)
     assert result.ci == pytest.approx(direct.confidence_interval(0.05))
 
 
-def test_decide_ci_matches_normal_ci_on_estimate_and_variance():
-    """decide's .ci field must be exactly normal_ci(estimate, variance,
+def test_inference_ci_matches_normal_ci_on_estimate_and_variance():
+    """inference's .ci field must be exactly normal_ci(estimate, variance,
     alpha) — locks in the consistent CI math across the package."""
     design = AdaptiveBlockDesign(B=24, rho=0.5, seed=0)
     W = design.sample(672)
     Y = SimpleDGP(mu=0.0, tau=1.0, sigma=1.0, seed=0).generate(W)
-    result = decide(design, IPWEstimator(design, m=1), W, Y, alpha=0.10)
+    result = inference(design, IPWEstimator(design, m=1), W, Y, alpha=0.10)
     expected_ci = normal_ci(result.estimate, result.variance, 0.10)
     assert result.ci == pytest.approx(expected_ci)
 
 
-def test_decide_does_not_mutate_user_estimator():
-    """The user's estimator object must be unchanged after decide is
-    called — decide deep-copies it internally."""
+def test_inference_does_not_mutate_user_estimator():
+    """The user's estimator object must be unchanged after inference is
+    called — inference deep-copies it internally."""
     design = BernoulliDesign(l=2, seed=0)
     W = design.sample(40)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design, m=0)
     assert est.estimate_ is None  # pre-fit state
-    _ = decide(design, est, W, Y, alpha=0.05)
+    _ = inference(design, est, W, Y, alpha=0.05)
     assert est.estimate_ is None  # still pre-fit
 
 
-def test_decide_rejects_invalid_alpha():
+def test_inference_rejects_invalid_alpha():
     design = BernoulliDesign(seed=0)
     W = design.sample(40)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design, m=0)
     with pytest.raises(ValueError, match="alpha"):
-        decide(design, est, W, Y, alpha=0.0)
+        inference(design, est, W, Y, alpha=0.0)
     with pytest.raises(ValueError, match="alpha"):
-        decide(design, est, W, Y, alpha=1.0)
+        inference(design, est, W, Y, alpha=1.0)

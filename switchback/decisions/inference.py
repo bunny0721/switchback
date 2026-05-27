@@ -1,6 +1,6 @@
-"""Full design-based decide pipeline: estimate + variance + CI.
+"""Full design-based inference pipeline: estimate + variance + CI.
 
-This module exposes :func:`decide`, the one-call front door for users
+This module exposes :func:`inference`, the one-call front door for users
 who want a point estimate, a design-based variance, and a
 normal-approximation confidence interval in one go.
 
@@ -13,7 +13,7 @@ on the design family:
   :class:`HACVariance` (Newey-West HAC on per-window influence
   sequence).
 
-Returns an :class:`DecisionResult` dataclass with ``.estimate``,
+Returns an :class:`InferenceResult` dataclass with ``.estimate``,
 ``.variance``, ``.ci``, ``.alpha`` attributes.
 """
 
@@ -33,8 +33,8 @@ from switchback.decisions.hac_variance import HACVariance, normal_ci
 
 
 @dataclass
-class DecisionResult:
-    """Output container for :func:`decide`.
+class InferenceResult:
+    """Output container for :func:`inference`.
 
     Attributes
     ----------
@@ -57,14 +57,14 @@ class DecisionResult:
     alpha: float
 
 
-def decide(
+def inference(
     design: BaseDesign,
     estimator: BaseEstimator,
     assignment: np.ndarray,
     outcomes: np.ndarray,
     alpha: float = 0.05,
-) -> DecisionResult:
-    r"""Full design-based decide pipeline in one call.
+) -> InferenceResult:
+    r"""Full design-based inference pipeline in one call.
 
     Computes the point estimate from the user's estimator, then the
     design-derived variance via the appropriate dispatch, then a
@@ -100,7 +100,7 @@ def decide(
 
     Returns
     -------
-    DecisionResult
+    InferenceResult
         Dataclass with attributes ``estimate``, ``variance``, ``ci``,
         ``alpha``.
 
@@ -110,11 +110,11 @@ def decide(
 
     >>> from switchback.design import AdaptiveBlockDesign
     >>> from switchback.estimators import IPWEstimator
-    >>> from switchback.decisions import decide
+    >>> from switchback.decisions import inference
     >>> design = AdaptiveBlockDesign(B=24, rho=0.5, seed=0)
     >>> W = design.sample(672)
     >>> Y = ...  # outcomes
-    >>> result = decide(design, IPWEstimator(design, m=1), W, Y, alpha=0.05)
+    >>> result = inference(design, IPWEstimator(design, m=1), W, Y, alpha=0.05)
     >>> result.estimate, result.variance, result.ci  # doctest: +SKIP
 
     BernoulliDesign workflow (dispatches to HAC):
@@ -122,7 +122,7 @@ def decide(
     >>> from switchback.design import BernoulliDesign
     >>> design = BernoulliDesign(l=4, seed=0)
     >>> W = design.sample(200)
-    >>> result = decide(design, IPWEstimator(design, m=3), W, Y, alpha=0.05)
+    >>> result = inference(design, IPWEstimator(design, m=3), W, Y, alpha=0.05)
     """
     W = np.asarray(assignment, dtype=int)
     Y = np.asarray(outcomes, dtype=float)
@@ -142,6 +142,6 @@ def decide(
         v_hat = float(inf.variance_)
 
     ci = normal_ci(tau_hat, v_hat, alpha)
-    return DecisionResult(
+    return InferenceResult(
         estimate=tau_hat, variance=v_hat, ci=ci, alpha=alpha
     )
