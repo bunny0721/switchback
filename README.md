@@ -1,8 +1,8 @@
 # switchback
 
 A Python package for **designing and analyzing switchback experiments** —
-time-series A/B tests where the same unit (a city, a marketplace, a server)
-is alternately assigned to treatment and control across consecutive time
+A/B tests where the same unit (a city, a marketplace, a server) is
+alternately assigned to treatment and control across consecutive time
 periods. They are the workhorse for measuring interventions in systems
 with temporal interference, where unit-level randomization would
 contaminate control with treatment spillovers.
