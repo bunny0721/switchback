@@ -57,7 +57,7 @@ All designs expose `design.sample(T) -> np.ndarray` and a propensity oracle
 | class | parameters | what it does |
 |---|---|---|
 | `BernoulliDesign(l, p, seed)` | `l: int` (time window length), `p ∈ [0, 1]` | Partition `[0, T)` into windows of length `l`; within each window draw one `Bern(p)` coin and apply it to every period. `l=1` is per-period i.i.d. Bernoulli. See Bojinov, Simchi-Levi & Zhao [1]. |
-| `CompleteRandomization(l, seed)` | `l: int` (time window length) | Same window partition, but the treated count is **fixed**: exactly half of the `T/l` windows are treated, sampled without replacement. See Ni, Zhao & Bojinov [2]. |
+| `CompleteRandomization(l, seed)` | `l: int` (time window length) | Same window partition, but the treated count is **fixed**: exactly half of the `T/l` windows are treated, sampled without replacement. See Ni, Bojinov & Zhao [2]. |
 | `AdaptiveBlockDesign(B, rho, seed)` | `B: int` (seasonal blocks), `rho ∈ [0.5, 1]` | Model-assisted design of Ni & Bojinov [3]. `B` seasonal blocks (e.g. 24 hours of the day) × `K = T/B` days. Block 0 sampled by CR; block `b ≥ 1` sampled adaptively given block `b−1` to maintain exactly `ρ·K` consecutive same-arm pairs. |
 
 ## DGPs (`switchback.dgp`)
@@ -102,7 +102,7 @@ Two design-derived variance estimators, dispatched automatically by the
 
 | design | variance estimator | notes |
 |---|---|---|
-| `AdaptiveBlockDesign` | `block_variance` | Eq. 28 of Ni & Bojinov with block-0 boundary fixes (1/π_b weight + count-variance correction), per-pair γ⁺/γ⁻ matrix from the Class A/B/C structural classification, and factor-2 mirror at forward δ ≤ B/2. Auto-truncates max_delta based on chain decay. |
+| `AdaptiveBlockDesign` | `block_variance` | Design-derived variance estimator built from per-block sample (co)variances of contributing periods, weighted by the design's overlapping indices `γ⁺_{b,b'}` and `γ⁻_{b,b'}`. See Ni & Bojinov [3]. |
 | `BernoulliDesign`, `CompleteRandomization` | `HACVariance` | Newey-West HAC on per-window influence sequences. Rejects `AdaptiveBlockDesign` at construction. |
 
 Public API:
@@ -133,20 +133,6 @@ v_hat   = block_variance(design, W, Y)     # for AdaptiveBlockDesign
 lo, hi  = normal_ci(tau_hat, v_hat, alpha=0.05)
 ```
 
-## Calibration
-
-Under design-based inference at `B=24, K=28` (the package's standing rule
-for `AdaptiveBlockDesign` tests), `block_variance` calibrates to within
-~1% of empirical `Var_W(τ̂ | noise)` across:
-
-| DGP regime | mean V̂ / Var ratio |
-|---|---|
-| LatentStateDGP, γ=0.2, ρ=0.5 | **1.012** |
-| LatentStateDGP, γ=0.2, ρ=0.75 | **1.001** |
-| LatentStateDGP, γ=0.5, ρ=0.7 | **1.010** |
-
-across 10 noise seeds × 12,000 W draws each.
-
 ## Running the tests
 
 ```bash
@@ -155,7 +141,7 @@ pytest tests/ -q
 ```
 
 148 tests covering: DGP sanity, design propensities, estimator
-correctness, variance calibration, boundary corrections, CI math, and
+correctness, variance estimation, boundary corrections, CI math, and
 the `m ≤ l` and dispatch invariants.
 
 ## References
@@ -163,8 +149,8 @@ the `m ≤ l` and dispatch invariants.
 [1] Bojinov, Iavor, David Simchi-Levi, and Jinglong Zhao.
 *Design and Analysis of Switchback Experiments.* Management Science.
 
-[2] Ni, Tu, Jinglong Zhao, and Iavor Bojinov.
-*Switchback Experiments under Complete Randomization.*
+[2] Ni, Tu, Iavor Bojinov, and Jinglong Zhao.
+*Design of Panel Experiments with Spatial and Temporal Interference.*
 
 [3] Ni, Tu, and Iavor Bojinov.
 *Enhancing Efficiency and Robustness for Switchback Experiments:
