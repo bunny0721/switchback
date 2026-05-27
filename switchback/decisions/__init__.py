@@ -1,15 +1,13 @@
 """Decision rules: variance estimation, confidence intervals, ship/no-ship.
 
-Inference (variance + CI) lives here, not on the estimator: the estimator
-returns only a point estimate, and inference takes (design, estimator)
-together. By default, inference is *design-based* — the variance comes
-from the design's randomization distribution rather than a model on the
-outcomes.
+The decisions module estimates the design-based variance of a point
+estimate and constructs a normal-approximation confidence interval —
+the statistical machinery you need to make ship/no-ship calls from a
+switchback experiment.
 
-The recommended front door is :func:`inference`, which dispatches to
-the appropriate variance estimator based on the design family and
-returns a point estimate, variance, and confidence interval in one
-call:
+The recommended front door is :func:`decide`, which dispatches to the
+appropriate variance estimator based on the design family and returns a
+point estimate, variance, and confidence interval in one call:
 
 * :class:`switchback.design.AdaptiveBlockDesign` → :func:`block_variance`
   (eq. 28 with block-0 boundary fixes, per-pair γ matrix, factor-2
@@ -33,11 +31,11 @@ from switchback.decisions.hac_variance import (
     confidence_interval,
     normal_ci,
 )
-from switchback.decisions.inference import InferenceResult, inference
+from switchback.decisions.decide import DecisionResult, decide
 
 __all__ = [
-    "inference",
-    "InferenceResult",
+    "decide",
+    "DecisionResult",
     "block_variance",
     "block_confidence_interval",
     "HACVariance",

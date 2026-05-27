@@ -68,7 +68,7 @@ the user memory.
 
 .. note::
 
-   **Seasonality** at block 0 used to require ``DesignBasedInference``'s
+   **Seasonality** at block 0 used to require ``HACVariance``'s
    block-wise HAC; with this correction ``paper_variance`` is also
    robust to block 0's seasonal level. The block-wise HAC remains the
    recommended path for **non-block-0** seasonal levels (interior block

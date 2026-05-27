@@ -14,7 +14,7 @@ The package is organized into four pluggable modules:
 | `switchback.dgp` | **data generating processes** — given an assignment path of length `T`, return the observed outcomes |
 | `switchback.design` | **designs** — produce assignment paths |
 | `switchback.estimators` | **estimators** — map `(W, Y)` to a treatment-effect estimate |
-| `switchback.decisions` | **inference** — variance estimation + confidence intervals |
+| `switchback.decisions` | **decisions** — estimate the variance and construct confidence intervals |
 
 ## Install
 
@@ -24,7 +24,7 @@ pip install -e .
 
 ## 60-second quickstart
 
-The one-call front door is `inference(design, estimator, W, Y, alpha)` — it
+The one-call front door is `decide(design, estimator, W, Y, alpha)` — it
 queries the point estimate, dispatches the appropriate design-derived
 variance estimator, and returns a confidence interval, all in one shot:
 
@@ -32,7 +32,7 @@ variance estimator, and returns a confidence interval, all in one shot:
 from switchback.design import AdaptiveBlockDesign
 from switchback.estimators import IPWEstimator
 from switchback.dgp.state_space import LatentStateDGP
-from switchback.decisions import inference
+from switchback.decisions import decide
 
 design = AdaptiveBlockDesign(B=24, rho=0.5, seed=0)   # 24 seasonal blocks × K days
 dgp    = LatentStateDGP(gamma=0.2, seed=0)            # AR(1) latent state DGP
@@ -41,12 +41,12 @@ est    = IPWEstimator(design, m=1)                    # paper's primary form
 W = design.sample(672)              # length-T assignment path (T = B·K = 24·28)
 Y = dgp.generate(W)                 # observed outcomes
 
-result = inference(design, est, W, Y, alpha=0.05)
+result = decide(design, est, W, Y, alpha=0.05)
 print(result.estimate, result.variance, result.ci)
 # → 0.987..., 0.0272..., (0.664..., 1.310...)
 ```
 
-For BernoulliDesign / CompleteRandomization the call is identical — `inference`
+For BernoulliDesign / CompleteRandomization the call is identical — `decide`
 auto-dispatches to the appropriate variance estimator under the hood.
 
 ## Designs (`switchback.design`)
@@ -85,10 +85,12 @@ For `AdaptiveBlockDesign` the natural configuration is `m = l = 1`
 (the implicit window length is 1; the design's `ρ` controls the consecutive
 same-arm propensity).
 
-## Inference (`switchback.decisions`)
+## Decisions (`switchback.decisions`)
 
-Two design-derived variance estimators, dispatched automatically by the
-`inference` front door:
+The decisions module estimates the design-based variance and constructs
+confidence intervals from a point estimate. Two design-derived variance
+estimators are available, dispatched automatically by the `decide` front
+door:
 
 | design | variance estimator | notes |
 |---|---|---|
@@ -99,8 +101,8 @@ Public API:
 
 ```python
 from switchback.decisions import (
-    inference,           # one-call front door (recommended)
-    InferenceResult,     # dataclass: .estimate, .variance, .ci, .alpha
+    decide,           # one-call front door (recommended)
+    DecisionResult,     # dataclass: .estimate, .variance, .ci, .alpha
     block_variance,      # AdaptiveBlockDesign variance estimator
     HACVariance,         # HAC variance for window-structured designs
     normal_ci,           # (estimate, variance, alpha) -> CI
@@ -112,8 +114,8 @@ from switchback.decisions import (
 ### Quick reference
 
 ```python
-# One-call inference (dispatches by design type)
-result = inference(design, estimator, W, Y, alpha=0.05)
+# One-call decide (dispatches by design type)
+result = decide(design, estimator, W, Y, alpha=0.05)
 result.estimate, result.variance, result.ci, result.alpha
 
 # Step-by-step (if you want the intermediate values)
@@ -125,7 +127,7 @@ lo, hi  = normal_ci(tau_hat, v_hat, alpha=0.05)
 
 ## Calibration
 
-Under design-based inference at `B=24, K=28` (the package's standing rule
+Under design-based variance estimation at `B=24, K=28` (the package's standing rule
 for `AdaptiveBlockDesign` tests), `block_variance` calibrates to within
 ~1% of empirical `Var_W(τ̂ | noise)` across:
 

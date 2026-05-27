@@ -1,4 +1,4 @@
-"""Design-based (Neyman-type) inference for switchback experiments.
+"""Design-based (Neyman-type) decide for switchback experiments.
 
 Variance via **joint HAC on a per-window influence-function sequence**.
 Confidence intervals via the normal approximation.
