@@ -1,5 +1,5 @@
 """Performance check — stratified Hájek on LatentStateDGP under
-Bernoulli(window_length=4), burn-in m=2.
+Bernoulli(l=4), burn-in m=2.
 
 The DGP has *infinite* (geometrically-decaying) carryover; the estimator
 burns in only m=2 periods, so it is biased for the true (long-run)
@@ -33,7 +33,7 @@ from switchback.evaluation import (
 def main() -> None:
     T = 2_000
     n_reps = 3_000
-    window_length = 4
+    l = 4
     m = 2
 
     dgp_kwargs = dict(
@@ -50,7 +50,7 @@ def main() -> None:
     tau_true = true_effect(truth_dgp, T=20_000, seed=0)
 
     # --- Monte Carlo ---
-    design = BernoulliDesign(window_length=window_length, p=0.5)
+    design = BernoulliDesign(l=l, p=0.5)
     dgp = LatentStateDGP(**dgp_kwargs)
     estimates = []
     rng = np.random.default_rng(0)
@@ -78,7 +78,7 @@ def main() -> None:
         f"sigma_h={dgp_kwargs['sigma_h']})"
     )
     print(
-        f"Design   : BernoulliDesign(window_length={window_length}, p=0.5)"
+        f"Design   : BernoulliDesign(l={l}, p=0.5)"
     )
     print(f"Estimator: StratifiedHajekEstimator(m={m})")
     print(f"T = {T},  n_reps = {len(estimates)} (out of {n_reps} attempted)")

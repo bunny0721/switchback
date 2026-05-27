@@ -40,7 +40,7 @@ class IPWEstimator(BaseEstimator):
     above is replaced by the **self-normalised** form (divide each arm's
     sum by the realised arm size rather than by the propensity). With
     fixed-total designs this is the natural choice, and the two forms
-    coincide exactly when ``window_length = 1, m = 0`` (since
+    coincide exactly when ``l = 1, m = 0`` (since
     ``n_w / (T - m) = π_w`` deterministically). For other CR
     configurations the self-normalised form is preferable because the
     population propensities are *marginal* (not conditional on the
@@ -71,16 +71,16 @@ class IPWEstimator(BaseEstimator):
             raise TypeError("design must be a BaseDesign instance")
         if not isinstance(m, (int, np.integer)) or m < 0:
             raise ValueError(f"m must be a non-negative integer, got {m!r}")
-        l = int(design.window_length)
+        l = int(design.l)
         if int(m) > l:
             raise ValueError(
-                f"m must be ≤ design.window_length; got m={m}, "
-                f"window_length={l}. The burn-in cannot exceed the design's "
+                f"m must be ≤ design.l; got m={m}, "
+                f"l={l}. The burn-in cannot exceed the design's "
                 f"window length — there's no structural mechanism to "
                 f"guarantee m+1 consecutive same-arm periods beyond a window. "
                 f"For BernoulliDesign/CompleteRandomization, m={l-1} is the "
                 f"natural 'in-window' choice; for AdaptiveBlockDesign "
-                f"(window_length=1), use m=1 (paper's primary form) or m=0."
+                f"(l=1), use m=1 (paper's primary form) or m=0."
             )
         self.design = design
         self.m = int(m)

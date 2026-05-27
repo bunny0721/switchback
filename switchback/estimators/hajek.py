@@ -9,9 +9,9 @@ single estimator:
 
 * ``m = 0``: every contributing period is in stratum ``B=1`` (window
   fits in a single design window) → one Hájek estimator.
-* ``0 < m < window_length``: strata ``B=1`` and ``B=2`` both contribute
+* ``0 < m < l``: strata ``B=1`` and ``B=2`` both contribute
   → two estimators combined.
-* ``m = window_length``: every contributing period is in stratum
+* ``m = l``: every contributing period is in stratum
   ``B=2`` (window crosses one design-window boundary) → one Hájek.
 """
 
@@ -35,8 +35,9 @@ class HajekEstimator(BaseEstimator):
 
     For each contributing period ``t`` (``W_{t-m:t}`` all-treated or
     all-controlled), let ``B(t) = (t // l) - ((t - m) // l) + 1`` be the
-    number of design windows the IPW window intersects (where
-    ``l = window_length``). Group contributing periods by ``B(t)`` and
+    number of design windows the IPW window intersects, where ``l`` is
+    the design's time window length (``design.l``). Group contributing
+    periods by ``B(t)`` and
     compute a per-stratum Hájek
 
     .. math::
@@ -87,11 +88,11 @@ class HajekEstimator(BaseEstimator):
             )
         if not isinstance(m, (int, np.integer)) or m < 0:
             raise ValueError(f"m must be a non-negative integer, got {m!r}")
-        l = int(design.window_length)
+        l = int(design.l)
         if int(m) > l:
             raise ValueError(
-                f"m must be ≤ design.window_length; got m={m}, "
-                f"window_length={l}. The burn-in cannot exceed the design's "
+                f"m must be ≤ design.l; got m={m}, "
+                f"l={l}. The burn-in cannot exceed the design's "
                 f"window length. m={l-1} is the natural 'in-window' choice."
             )
         self.design = design
@@ -105,7 +106,7 @@ class HajekEstimator(BaseEstimator):
         T, m = W.size, self.m
         if T <= m:
             raise ValueError(f"need T > m; got T={T}, m={m}")
-        K = self.design.window_length
+        K = self.design.l
 
         strata: dict[int, dict[int, list[float]]] = {}
         for t in range(m, T):

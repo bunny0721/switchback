@@ -12,7 +12,7 @@ from switchback.design.base import BaseDesign
 class CompleteRandomization(BaseDesign):
     r"""Complete-randomization switchback (sample without replacement at the window level).
 
-    Partition the horizon ``[0, T)`` into ``n = T / window_length`` equal-size
+    Partition the horizon ``[0, T)`` into ``n = T / l`` equal-size
     windows; uniformly sample ``n / 2`` windows to be treated and the remaining
     ``n / 2`` to be control. Within a window, every period inherits the
     window's draw, so the realised assignment path always has exactly ``T/2``
@@ -25,13 +25,14 @@ class CompleteRandomization(BaseDesign):
 
     Constraints
     -----------
-    * ``T`` must be divisible by ``window_length``.
-    * ``n = T / window_length`` must be even.
+    * ``T`` must be divisible by ``l``.
+    * ``n = T / l`` must be even.
 
     Parameters
     ----------
-    window_length : int
-        Number of consecutive periods per window. Must be ``>= 1``.
+    l : int
+        Time window length: number of consecutive periods per window.
+        Must be ``>= 1``.
     seed : int or None
 
     Notes
@@ -49,13 +50,13 @@ class CompleteRandomization(BaseDesign):
     this converges to the Bernoulli ``(1/2)^B``.
     """
 
-    def __init__(self, window_length: int = 1, seed: Optional[int] = None):
+    def __init__(self, l: int = 1, seed: Optional[int] = None):
         super().__init__(seed=seed)
-        if not isinstance(window_length, (int, np.integer)) or window_length < 1:
+        if not isinstance(l, (int, np.integer)) or l < 1:
             raise ValueError(
-                f"window_length must be a positive integer, got {window_length!r}"
+                f"l must be a positive integer, got {l!r}"
             )
-        self.window_length = int(window_length)
+        self.l = int(l)
 
     # ------------------------------------------------------------------
     # Window structure
@@ -65,29 +66,29 @@ class CompleteRandomization(BaseDesign):
         """Number of windows. Validates the divisibility/parity constraints."""
         if T <= 0:
             raise ValueError(f"T must be positive, got {T}")
-        K = self.window_length
+        K = self.l
         if T % K != 0:
             raise ValueError(
-                f"CompleteRandomization requires T divisible by window_length; "
-                f"got T={T}, window_length={K}"
+                f"CompleteRandomization requires T divisible by l; "
+                f"got T={T}, l={K}"
             )
         n = T // K
         if n % 2 != 0:
             raise ValueError(
                 f"CompleteRandomization requires an even number of windows; "
-                f"got n = T/window_length = {n}"
+                f"got n = T/l = {n}"
             )
         return n
 
     def window_index(self, T: int) -> np.ndarray:
         """Map each period in ``[0, T)`` to its window index."""
         self.n_windows(T)  # validate
-        return np.arange(T, dtype=int) // self.window_length
+        return np.arange(T, dtype=int) // self.l
 
     def randomization_points(self, T: int) -> np.ndarray:
         """0-indexed first period of each window."""
         self.n_windows(T)
-        return np.arange(0, T, self.window_length, dtype=int)
+        return np.arange(0, T, self.l, dtype=int)
 
     # ------------------------------------------------------------------
     # API
@@ -112,7 +113,7 @@ class CompleteRandomization(BaseDesign):
                 f"window [t-p, t] = [{t - p}, {t}] is out of bounds for T={T}"
             )
         n = self.n_windows(T)
-        K = self.window_length
+        K = self.l
         first_window = (t - p) // K
         last_window = t // K
         B = last_window - first_window + 1

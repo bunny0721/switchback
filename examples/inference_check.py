@@ -1,6 +1,6 @@
 """Empirical diagnostics — designs × estimators × DGPs.
 
-Setup (all with window_length=1, p=0.5):
+Setup (all with l=1, p=0.5):
   Designs:    BernoulliDesign  vs  CompleteRandomization
   Estimators: IPW (finite-sample Neyman variance)
               Hájek (asymptotic Welch variance)
@@ -54,8 +54,8 @@ def run_scenario(
     rng = np.random.default_rng(seed)
 
     designs = [
-        ("Bernoulli", lambda: BernoulliDesign(window_length=1, p=0.5)),
-        ("Complete ", lambda: CompleteRandomization(window_length=1)),
+        ("Bernoulli", lambda: BernoulliDesign(l=1, p=0.5)),
+        ("Complete ", lambda: CompleteRandomization(l=1)),
     ]
     estimators = [
         ("IPW", IPWEstimator),

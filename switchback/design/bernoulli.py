@@ -2,7 +2,7 @@
 
 A Bernoulli design partitions the time horizon into equal-length windows and
 draws one independent ``Bern(p)`` coin per window; every period inside a window
-inherits its window's draw. ``window_length`` is the only knob: it controls how
+inherits its window's draw. ``l`` is the only knob: it controls how
 frequently the coin is flipped.
 
 The estimator's burn-in length ``m`` is *not* part of the design; the design
@@ -22,18 +22,19 @@ class BernoulliDesign(BaseDesign):
     r"""Window-Bernoulli switchback design.
 
     Partition the horizon ``[0, T)`` into windows ``[0, K), [K, 2K), ...``
-    of length ``K = window_length`` (the final window may be shorter). Within
+    of length ``K = l`` (the final window may be shorter). Within
     each window, every period gets the same ``Bern(p)`` draw; coins for
     different windows are independent.
 
     Special cases:
-    * ``window_length = 1`` recovers per-period i.i.d. Bernoulli randomization.
-    * ``window_length = T`` is constant treatment for the whole horizon.
+    * ``l = 1`` recovers per-period i.i.d. Bernoulli randomization.
+    * ``l = T`` is constant treatment for the whole horizon.
 
     Parameters
     ----------
-    window_length : int
-        Number of consecutive periods sharing one coin flip. Must be ``>= 1``.
+    l : int
+        Time window length: the number of consecutive periods sharing one
+        coin flip. Must be ``>= 1``.
     p : float
         Treatment probability per coin. Must be in the open interval ``(0, 1)``.
         Default ``0.5`` (fair coin).
@@ -49,18 +50,18 @@ class BernoulliDesign(BaseDesign):
 
     def __init__(
         self,
-        window_length: int = 1,
+        l: int = 1,
         p: float = 0.5,
         seed: Optional[int] = None,
     ):
         super().__init__(seed=seed)
-        if not isinstance(window_length, (int, np.integer)) or window_length < 1:
+        if not isinstance(l, (int, np.integer)) or l < 1:
             raise ValueError(
-                f"window_length must be a positive integer, got {window_length!r}"
+                f"l must be a positive integer, got {l!r}"
             )
         if not (0.0 < p < 1.0):
             raise ValueError(f"p must be strictly in (0, 1), got {p}")
-        self.window_length = int(window_length)
+        self.l = int(l)
         self.p = float(p)
 
     # ------------------------------------------------------------------
@@ -71,20 +72,20 @@ class BernoulliDesign(BaseDesign):
         """Number of windows the horizon ``T`` is split into."""
         if T <= 0:
             raise ValueError(f"T must be positive, got {T}")
-        K = self.window_length
+        K = self.l
         return (T + K - 1) // K
 
     def window_index(self, T: int) -> np.ndarray:
         """Map each period in ``[0, T)`` to its window index."""
         if T <= 0:
             raise ValueError(f"T must be positive, got {T}")
-        return np.arange(T, dtype=int) // self.window_length
+        return np.arange(T, dtype=int) // self.l
 
     def randomization_points(self, T: int) -> np.ndarray:
         """0-indexed first period of each window."""
         if T <= 0:
             raise ValueError(f"T must be positive, got {T}")
-        return np.arange(0, T, self.window_length, dtype=int)
+        return np.arange(0, T, self.l, dtype=int)
 
     # ------------------------------------------------------------------
     # API
@@ -105,7 +106,7 @@ class BernoulliDesign(BaseDesign):
             raise ValueError(
                 f"window [t-p, t] = [{t - p}, {t}] is out of bounds for T={T}"
             )
-        K = self.window_length
+        K = self.l
         first_window = (t - p) // K
         last_window = t // K
         n_intersected = last_window - first_window + 1

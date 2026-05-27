@@ -17,7 +17,7 @@ from switchback.estimators import (
 # ---------------------------------------------------------------------------
 
 def test_per_period_bernoulli_T4_m1_hand_computed():
-    """T=4, m=1, BernoulliDesign(window_length=1), W=(1,1,0,0), Y=(10,20,30,40).
+    """T=4, m=1, BernoulliDesign(l=1), W=(1,1,0,0), Y=(10,20,30,40).
 
     For each t in {1,2,3} (0-indexed):
       t=1: window [0,1]=(1,1) -> +Y[1] / (1/2)^2 = 80
@@ -25,7 +25,7 @@ def test_per_period_bernoulli_T4_m1_hand_computed():
       t=3: window [2,3]=(0,0) -> -Y[3] / (1/2)^2 = -160
     sum / (T-m) = (80 - 160) / 3 = -80/3.
     """
-    design = BernoulliDesign(window_length=1)
+    design = BernoulliDesign(l=1)
     est = IPWEstimator(design=design, m=1).fit(
         np.array([1, 1, 0, 0]),
         np.array([10.0, 20.0, 30.0, 40.0]),
@@ -34,15 +34,15 @@ def test_per_period_bernoulli_T4_m1_hand_computed():
 
 
 def test_window_length_changes_propensities():
-    """With window_length=2, the same W has higher propensities -> different estimate.
+    """With l=2, the same W has higher propensities -> different estimate.
 
-    T=4, m=1, window_length=2, W=(1,1,0,0):
+    T=4, m=1, l=2, W=(1,1,0,0):
       t=1: window [0,1]=(1,1), one window -> +Y[1]/(1/2) = 40
       t=2: window [1,2]=(1,0) mixed -> 0
       t=3: window [2,3]=(0,0), one window -> -Y[3]/(1/2) = -80
     sum / 3 = -40/3.
     """
-    design = BernoulliDesign(window_length=2)
+    design = BernoulliDesign(l=2)
     est = IPWEstimator(design=design, m=1).fit(
         np.array([1, 1, 0, 0]),
         np.array([10.0, 20.0, 30.0, 40.0]),
@@ -52,7 +52,7 @@ def test_window_length_changes_propensities():
 
 def test_m_zero_uses_only_W_t():
     """With m=0, each period contributes Y_t / Pr(W_t=w_t) with the right sign."""
-    design = BernoulliDesign(window_length=1, p=0.5)
+    design = BernoulliDesign(l=1, p=0.5)
     W = np.array([1, 0, 1, 0])
     Y = np.array([1.0, 2.0, 3.0, 4.0])
     # +Y[0]/0.5 - Y[1]/0.5 + Y[2]/0.5 - Y[3]/0.5 = 2 - 4 + 6 - 8 = -4. /T = -1.
@@ -69,7 +69,7 @@ def test_unbiasedness_under_simple_dgp():
     T, m = 32, 0
     tau = 1.5
     dgp = SimpleDGP(mu=0.0, tau=tau, sigma=1.0)
-    design = BernoulliDesign(window_length=1)
+    design = BernoulliDesign(l=1)
     est = IPWEstimator(design=design, m=m)
 
     estimates = []
@@ -89,7 +89,7 @@ def test_unbiasedness_with_window_length_gt_one():
     T, m = 24, 0
     tau = 1.0
     dgp = SimpleDGP(mu=0.5, tau=tau, sigma=1.0)
-    design = BernoulliDesign(window_length=3)
+    design = BernoulliDesign(l=3)
     est = IPWEstimator(design=design, m=m)
 
     estimates = []
@@ -115,8 +115,8 @@ def test_estimator_rejects_non_binary_assignment():
 
 
 def test_estimator_rejects_T_le_m():
-    # window_length=5 so the m=5 constructor accepts; T=3 then triggers T > m.
-    est = IPWEstimator(design=BernoulliDesign(window_length=5), m=5)
+    # l=5 so the m=5 constructor accepts; T=3 then triggers T > m.
+    est = IPWEstimator(design=BernoulliDesign(l=5), m=5)
     with pytest.raises(ValueError):
         est.fit(np.zeros(3, dtype=int), np.zeros(3))
 
@@ -135,15 +135,15 @@ def test_estimator_requires_basedesign():
 def test_estimator_rejects_m_exceeding_window_length():
     """The burn-in m cannot exceed the design's window length — there's no
     structural mechanism to guarantee m+1 consecutive same-arm periods
-    beyond a window. Locks in the constraint m ≤ design.window_length."""
-    # BernoulliDesign window_length=2: m=2 is the boundary (allowed), m=3 not.
-    IPWEstimator(design=BernoulliDesign(window_length=2), m=2)  # boundary OK
-    with pytest.raises(ValueError, match="window_length"):
-        IPWEstimator(design=BernoulliDesign(window_length=2), m=3)
-    # AdaptiveBlockDesign has window_length=1; m=1 (paper's primary) OK, m=2 not.
+    beyond a window. Locks in the constraint m ≤ design.l."""
+    # BernoulliDesign l=2: m=2 is the boundary (allowed), m=3 not.
+    IPWEstimator(design=BernoulliDesign(l=2), m=2)  # boundary OK
+    with pytest.raises(ValueError, match="l"):
+        IPWEstimator(design=BernoulliDesign(l=2), m=3)
+    # AdaptiveBlockDesign has l=1; m=1 (paper's primary) OK, m=2 not.
     from switchback.design import AdaptiveBlockDesign
     IPWEstimator(design=AdaptiveBlockDesign(B=24, rho=0.5), m=1)  # boundary OK
-    with pytest.raises(ValueError, match="window_length"):
+    with pytest.raises(ValueError, match="l"):
         IPWEstimator(design=AdaptiveBlockDesign(B=24, rho=0.5), m=2)
 
 
@@ -184,7 +184,7 @@ def test_hajek_unbiasedness_under_simple_dgp():
     T, m = 32, 0
     tau = 1.5
     dgp = SimpleDGP(mu=0.0, tau=tau, sigma=1.0)
-    design = BernoulliDesign(window_length=1)
+    design = BernoulliDesign(l=1)
     estimates = []
     rng = np.random.default_rng(0)
     for s in rng.integers(0, 10**9, size=2_000):
@@ -208,8 +208,8 @@ def test_hajek_raises_when_either_arm_empty():
 
 
 def test_hajek_rejects_T_le_m():
-    # window_length=5 so the m=5 constructor accepts; T=3 then triggers T > m.
-    est = HajekEstimator(design=BernoulliDesign(window_length=5), m=5)
+    # l=5 so the m=5 constructor accepts; T=3 then triggers T > m.
+    est = HajekEstimator(design=BernoulliDesign(l=5), m=5)
     with pytest.raises(ValueError):
         est.fit(np.zeros(3, dtype=int), np.zeros(3))
 
@@ -230,7 +230,7 @@ def test_hajek_m_must_be_non_negative_integer():
 # ===========================================================================
 
 def test_stratified_hajek_block4_m2_hand_computed():
-    """T=12, window_length=4, m=2.
+    """T=12, l=4, m=2.
     Windows (0-indexed): [0..3], [4..7], [8..11].
     Periods 0,1 dropped (m=2). Strata (B = #windows the window crosses):
         t=2,3       -> window in window 0          (B=1)
@@ -248,7 +248,7 @@ def test_stratified_hajek_block4_m2_hand_computed():
     """
     W = np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1])
     Y = np.arange(1.0, 13.0)  # 1..12
-    design = BernoulliDesign(window_length=4)
+    design = BernoulliDesign(l=4)
     est = StratifiedHajekEstimator(design, m=2).fit(W, Y)
 
     # B=1, arm=1: indices {2,3,10,11} -> Y = [3,4,11,12], mean = 7.5
@@ -263,7 +263,7 @@ def test_stratified_hajek_consistency_simple_dgp():
     """Under SimpleDGP (no carryover) the stratified Hájek is consistent."""
     T, m = 200, 1
     tau = 1.0
-    design = BernoulliDesign(window_length=2)
+    design = BernoulliDesign(l=2)
     dgp = SimpleDGP(mu=0.0, tau=tau, sigma=1.0)
     estimates = []
     rng = np.random.default_rng(0)
@@ -289,7 +289,7 @@ def test_stratified_hajek_validation():
 
 
 def test_stratified_hajek_rejects_no_contribution():
-    design = BernoulliDesign(window_length=1)
+    design = BernoulliDesign(l=1)
     # Single arm only -> some stratum lacks both arms.
     est = StratifiedHajekEstimator(design, m=0)
     with pytest.raises(ValueError):
@@ -297,8 +297,8 @@ def test_stratified_hajek_rejects_no_contribution():
 
 
 def test_stratified_hajek_T_le_m_rejected():
-    # window_length=5 so the m=5 constructor accepts; T=3 then triggers T > m.
-    est = StratifiedHajekEstimator(design=BernoulliDesign(window_length=5), m=5)
+    # l=5 so the m=5 constructor accepts; T=3 then triggers T > m.
+    est = StratifiedHajekEstimator(design=BernoulliDesign(l=5), m=5)
     with pytest.raises(ValueError):
         est.fit(np.zeros(3, dtype=int), np.zeros(3))
 
@@ -309,7 +309,7 @@ def test_stratified_hajek_exposes_per_stratum_estimates():
     Hájek τ_B (here only B=1 has contributors, with τ_{B=1} = 0)."""
     W = np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1])
     Y = np.arange(1.0, 13.0)
-    design = BernoulliDesign(window_length=4)
+    design = BernoulliDesign(l=4)
     est = StratifiedHajekEstimator(design, m=2).fit(W, Y)
     assert est.estimate_per_stratum_ is not None
     assert 1 in est.estimate_per_stratum_

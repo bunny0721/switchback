@@ -6,13 +6,13 @@ Setup:
 
 Two regimes:
 
-  (A) window_length = 1, m = 2.
+  (A) l = 1, m = 2.
       Each period is its own window, so the closed form
           tau_m = beta_0 + alpha_0/(1-gamma) * (1 - gamma^(m+1))
       is the asymptotic estimand. Pooled and stratified Hájek both have
       a single stratum (B = m+1) and are identical numerically.
 
-  (B) window_length = 4, m = 2 (the user's setup).
+  (B) l = 4, m = 2 (the user's setup).
       Periods at within-window positions (0,1,2,3) split into two
       window-window-count strata: B=1 (interior, p∈{2,3}) and B=2 (cross,
       p∈{0,1}). The conditioning W_{t-m:t}=1 also fixes the coins of
@@ -77,7 +77,7 @@ def run_regime(
     pooled = np.array(pooled)
     stratified = np.array(stratified)
 
-    # Naive closed form (assumes window_length = 1; shown for reference).
+    # Naive closed form (assumes l = 1; shown for reference).
     beta_0 = dgp_kwargs["beta_0"]
     alpha_0 = dgp_kwargs["alpha_0"]
     gamma = dgp_kwargs["gamma"]
@@ -85,11 +85,11 @@ def run_regime(
 
     print(f"\n=== {label} ===")
     print(f"  T = {T}, n_reps = {n_reps}, m = {m}, "
-          f"window_length = {design_kwargs['window_length']}")
+          f"l = {design_kwargs['l']}")
     print(f"  Empirical asymptotic estimand (T=200k):  {truth:+.4f}")
     print(f"  Naive formula β_0 + α_0/(1-γ)·(1-γ^(m+1)):"
           f" {naive_formula:+.4f}   "
-          f"{'(matches under window=1)' if design_kwargs['window_length']==1 else '(differs — window spillover)'}")
+          f"{'(matches under window=1)' if design_kwargs['l']==1 else '(differs — window spillover)'}")
 
     for tag, arr in [("Pooled    ", pooled), ("Stratified", stratified)]:
         bias = arr.mean() - truth
@@ -112,15 +112,15 @@ def main() -> None:
     )
 
     run_regime(
-        label="(A) window_length = 1, m = 2  — formula applies",
+        label="(A) l = 1, m = 2  — formula applies",
         dgp_kwargs=dgp_kwargs,
-        design_kwargs=dict(window_length=1, p=0.5),
+        design_kwargs=dict(l=1, p=0.5),
         m=2, T=2_000, n_reps=1_500,
     )
     run_regime(
-        label="(B) window_length = 4, m = 2  — window spillover, two strata",
+        label="(B) l = 4, m = 2  — window spillover, two strata",
         dgp_kwargs=dgp_kwargs,
-        design_kwargs=dict(window_length=4, p=0.5),
+        design_kwargs=dict(l=4, p=0.5),
         m=2, T=2_000, n_reps=1_500,
     )
 

@@ -56,8 +56,8 @@ All designs expose `design.sample(T) -> np.ndarray` and a propensity oracle
 
 | class | parameters | what it does |
 |---|---|---|
-| `BernoulliDesign(window_length, p, seed)` | `window_length: int`, `p ∈ [0, 1]` | Partition `[0, T)` into windows of length `window_length`; within each window draw one `Bern(p)` coin and apply it to every period. `window_length=1` is per-period i.i.d. Bernoulli. |
-| `CompleteRandomization(window_length, seed)` | `window_length: int` | Same window partition, but the treated count is **fixed**: exactly half of the `T/window_length` windows are treated, sampled without replacement. |
+| `BernoulliDesign(l, p, seed)` | `l: int` (time window length), `p ∈ [0, 1]` | Partition `[0, T)` into windows of length `l`; within each window draw one `Bern(p)` coin and apply it to every period. `l=1` is per-period i.i.d. Bernoulli. |
+| `CompleteRandomization(l, seed)` | `l: int` (time window length) | Same window partition, but the treated count is **fixed**: exactly half of the `T/l` windows are treated, sampled without replacement. |
 | `AdaptiveBlockDesign(B, rho, seed)` | `B: int` (seasonal blocks), `rho ∈ [0.5, 1]` | Ni & Bojinov's model-assisted design. `B` seasonal blocks (e.g. 24 hours of the day) × `K = T/B` days. Block 0 sampled by CR; block `b ≥ 1` sampled adaptively given block `b−1` to maintain exactly `ρ·K` consecutive same-arm pairs. |
 
 ## DGPs (`switchback.dgp`)
@@ -72,7 +72,7 @@ All designs expose `design.sample(T) -> np.ndarray` and a propensity oracle
 
 All estimators take `(design, m)` where `m` is the **burn-in length** —
 how many consecutive same-arm periods are required for a valid
-observation. **The constructor enforces `m ≤ design.window_length`** since
+observation. **The constructor enforces `m ≤ design.l`** since
 no validity is guaranteed beyond a single window.
 
 | class | what it does |

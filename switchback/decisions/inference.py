@@ -120,7 +120,7 @@ def inference(
     BernoulliDesign workflow (dispatches to HAC):
 
     >>> from switchback.design import BernoulliDesign
-    >>> design = BernoulliDesign(window_length=4, seed=0)
+    >>> design = BernoulliDesign(l=4, seed=0)
     >>> W = design.sample(200)
     >>> result = inference(design, IPWEstimator(design, m=3), W, Y, alpha=0.05)
     """

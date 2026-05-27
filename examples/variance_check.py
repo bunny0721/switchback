@@ -162,8 +162,8 @@ def stratified_hajek_variance(
 
 def run_mc(T: int, n_reps: int, dgp_kwargs: dict, lags: int = 1,
            kernel: str = "truncated", seed: int = 0):
-    window_length, m = 4, 2
-    design = BernoulliDesign(window_length=window_length, p=0.5)
+    l, m = 4, 2
+    design = BernoulliDesign(l=l, p=0.5)
     dgp = LatentStateDGP(**dgp_kwargs)
 
     tau_strat: list[float] = []
@@ -184,7 +184,7 @@ def run_mc(T: int, n_reps: int, dgp_kwargs: dict, lags: int = 1,
         tau_strat.append(est.estimate_)
         plug.append(
             stratified_hajek_variance(
-                W, Y, est.n_per_stratum_, K=window_length, lags=lags, kernel=kernel
+                W, Y, est.n_per_stratum_, K=l, lags=lags, kernel=kernel
             )
         )
     return np.array(tau_strat), np.array(plug)

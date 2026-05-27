@@ -29,7 +29,7 @@ from switchback.estimators import HajekEstimator, IPWEstimator
 def test_point_estimate_matches_estimator():
     """The point estimate stored on the inference object equals the
     estimator's own estimate on the original (W, Y)."""
-    design = BernoulliDesign(window_length=2, seed=0)
+    design = BernoulliDesign(l=2, seed=0)
     W = design.sample(50)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design=design, m=0)
@@ -39,7 +39,7 @@ def test_point_estimate_matches_estimator():
 
 
 def test_variance_is_nonnegative_for_positive_outcomes():
-    design = BernoulliDesign(window_length=3, seed=0)
+    design = BernoulliDesign(l=3, seed=0)
     W = design.sample(40)
     # SimpleDGP with positive baseline -> all Y > 0 with high probability;
     # cross terms are then non-negative.
@@ -50,7 +50,7 @@ def test_variance_is_nonnegative_for_positive_outcomes():
 
 
 def test_confidence_interval_contains_estimate_and_widens_with_smaller_alpha():
-    design = BernoulliDesign(window_length=2, seed=0)
+    design = BernoulliDesign(l=2, seed=0)
     W = design.sample(60)
     Y = SimpleDGP(mu=5.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     inf = HACVariance(design, IPWEstimator(design, 0)).fit(W, Y)
@@ -61,7 +61,7 @@ def test_confidence_interval_contains_estimate_and_widens_with_smaller_alpha():
 
 
 def test_convenience_function_matches_class():
-    design = BernoulliDesign(window_length=2, seed=0)
+    design = BernoulliDesign(l=2, seed=0)
     W = design.sample(40)
     Y = SimpleDGP(mu=2.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design=design, m=0)
@@ -75,7 +75,7 @@ def test_convenience_function_matches_class():
 # ---------------------------------------------------------------------------
 
 def test_variance_matches_centered_neyman_window_length_1_m0_L0():
-    """For BernoulliDesign(window_length=1, p=0.5), IPW with m=0, joint
+    """For BernoulliDesign(l=1, p=0.5), IPW with m=0, joint
     HAC at ``L=0`` reduces to the centered Welch variance on the per-window
     influence sequence ``X_b = 2 (2 W_b − 1) Y_b``:
 
@@ -89,14 +89,14 @@ def test_variance_matches_centered_neyman_window_length_1_m0_L0():
     X = 2.0 * (2 * W - 1) * Y
     expected = float(((X - X.mean()) ** 2).sum() / T ** 2)
 
-    design = BernoulliDesign(window_length=1, p=0.5)
+    design = BernoulliDesign(l=1, p=0.5)
     est = IPWEstimator(design=design, m=0)
     inf = HACVariance(design, est, L=0).fit(W, Y)
     assert inf.variance_ == pytest.approx(expected)
 
 
 def test_variance_matches_window_aggregated_form_for_window_length_2_m0_L0():
-    """For BernoulliDesign(window_length=2, p=0.5), IPW with m=0, the
+    """For BernoulliDesign(l=2, p=0.5), IPW with m=0, the
     per-window IPW influence sums the two periods in window b with a
     common sign and divides by the window length:
 
@@ -109,7 +109,7 @@ def test_variance_matches_window_aggregated_form_for_window_length_2_m0_L0():
     rng = np.random.default_rng(1)
     T = 20
     Y = rng.normal(2.0, 1.0, size=T)
-    design = BernoulliDesign(window_length=2, p=0.5, seed=0)
+    design = BernoulliDesign(l=2, p=0.5, seed=0)
     W = design.sample(T)
 
     pair_sums = Y.reshape(-1, 2).sum(axis=1)
@@ -135,7 +135,7 @@ def test_hac_calibrated_against_empirical_variance_under_no_carryover():
     T, m = 24, 0
     tau = 1.0
     dgp = SimpleDGP(mu=2.0, tau=tau, sigma=1.0)
-    design = BernoulliDesign(window_length=3)
+    design = BernoulliDesign(l=3)
     estimates = []
     variances = []
     rng = np.random.default_rng(0)
@@ -186,11 +186,11 @@ def test_confidence_interval_requires_fit():
 
 
 def test_T_must_exceed_m():
-    # window_length=5 so the m=5 IPW constructor accepts; T=3 then triggers
+    # l=5 so the m=5 IPW constructor accepts; T=3 then triggers
     # the T > m check at fit time.
     inf = HACVariance(
-        design=BernoulliDesign(window_length=5),
-        estimator=IPWEstimator(design=BernoulliDesign(window_length=5), m=5),
+        design=BernoulliDesign(l=5),
+        estimator=IPWEstimator(design=BernoulliDesign(l=5), m=5),
     )
     with pytest.raises(ValueError):
         inf.fit(np.zeros(3, dtype=int), np.zeros(3))
@@ -243,7 +243,7 @@ def test_normal_ci_rejects_alpha_out_of_range():
 def test_normal_ci_matches_HACVariance_confidence_interval():
     """HACVariance.confidence_interval(alpha) must equal normal_ci on its
     own (estimate_, variance_). Locks in the shared CI logic."""
-    design = BernoulliDesign(window_length=2, seed=0)
+    design = BernoulliDesign(l=2, seed=0)
     W = design.sample(40)
     Y = SimpleDGP(mu=1.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     inf = HACVariance(design, IPWEstimator(design, m=0)).fit(W, Y)
@@ -257,7 +257,7 @@ def test_normal_ci_matches_HACVariance_confidence_interval():
 # ===========================================================================
 
 def test_hajek_inference_point_estimate_matches_estimator():
-    design = BernoulliDesign(window_length=2, seed=0)
+    design = BernoulliDesign(l=2, seed=0)
     W = design.sample(50)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
     est = HajekEstimator(design=design, m=0)
@@ -267,7 +267,7 @@ def test_hajek_inference_point_estimate_matches_estimator():
 
 
 def test_hajek_variance_at_L0_matches_centered_influence_formula():
-    """For BernoulliDesign(window_length=1), HajekEstimator(m=0), the
+    """For BernoulliDesign(l=1), HajekEstimator(m=0), the
     per-window influence is ``ξ_b = 2 (2 W_b − 1) (Y_b − μ̂_{W_b})`` (mean
     zero by construction). Joint HAC at ``L=0`` gives
 
@@ -277,7 +277,7 @@ def test_hajek_variance_at_L0_matches_centered_influence_formula():
     which agrees with the textbook Welch variance asymptotically and
     differs only by ddof in finite samples.
     """
-    design = BernoulliDesign(window_length=1, seed=0)
+    design = BernoulliDesign(l=1, seed=0)
     W = design.sample(80)
     Y = SimpleDGP(mu=2.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     inf = HACVariance(
@@ -294,7 +294,7 @@ def test_hajek_variance_at_L0_matches_centered_influence_formula():
 def test_hajek_variance_is_shift_invariant():
     """Adding a constant to Y leaves V̂_H unchanged (within-arm variances
     don't see the level)."""
-    design = BernoulliDesign(window_length=1, seed=0)
+    design = BernoulliDesign(l=1, seed=0)
     W = design.sample(80)
     Y = SimpleDGP(mu=0.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     inf_a = HACVariance(design, HajekEstimator(design, m=0)).fit(W, Y)
@@ -305,7 +305,7 @@ def test_hajek_variance_is_shift_invariant():
 def test_hajek_variance_smaller_than_ipw_when_levels_are_high():
     """Hájek's asymptotic variance is smaller than IPW's finite-sample
     variance by exactly the level term that the latter carries."""
-    design = BernoulliDesign(window_length=1, seed=0)
+    design = BernoulliDesign(l=1, seed=0)
     W = design.sample(200)
     # Large baseline -> IPW carries a big level contribution; Hájek doesn't.
     Y = SimpleDGP(mu=10.0, tau=1.0, sigma=1.0, seed=0).generate(W)
@@ -333,10 +333,10 @@ def test_hajek_inference_handles_one_obs_per_arm_gracefully():
 
 def test_hajek_coverage_under_simple_dgp():
     """Empirical 95% CI coverage should be near 95% when n is moderate
-    (Hájek asymptotic CI is exact under no carryover and window_length=1)."""
+    (Hájek asymptotic CI is exact under no carryover and l=1)."""
     T, m = 200, 0
     tau = 1.0
-    design = BernoulliDesign(window_length=1)
+    design = BernoulliDesign(l=1)
     dgp = SimpleDGP(mu=0.0, tau=tau, sigma=1.0)
     rng = np.random.default_rng(0)
     covered = []
@@ -364,7 +364,7 @@ def test_hajek_coverage_under_simple_dgp():
 def test_inference_accepts_complete_randomization():
     """HACVariance must accept CompleteRandomization for both
     estimator types."""
-    design = CompleteRandomization(window_length=2, seed=0)
+    design = CompleteRandomization(l=2, seed=0)
     W = design.sample(20)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
     # IPW
@@ -377,16 +377,16 @@ def test_inference_accepts_complete_randomization():
 
 def test_ipw_equals_hajek_under_complete_randomization_pointwise():
     """Under CompleteRandomization, IPWEstimator self-normalises and
-    collapses to HajekEstimator — for ANY window_length and ANY m, not
+    collapses to HajekEstimator — for ANY l and ANY m, not
     only window=1 m=0. Verify across a few configurations."""
     cases = [
-        dict(window_length=1, m=0, T=40),
-        dict(window_length=1, m=1, T=40),
-        dict(window_length=2, m=0, T=40),
-        dict(window_length=2, m=1, T=40),
+        dict(l=1, m=0, T=40),
+        dict(l=1, m=1, T=40),
+        dict(l=2, m=0, T=40),
+        dict(l=2, m=1, T=40),
     ]
     for cfg in cases:
-        design = CompleteRandomization(window_length=cfg["window_length"], seed=0)
+        design = CompleteRandomization(l=cfg["l"], seed=0)
         W = design.sample(cfg["T"])
         Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
         try:
@@ -400,7 +400,7 @@ def test_ipw_equals_hajek_under_complete_randomization_pointwise():
 def test_ipw_equals_hajek_under_complete_randomization_variance():
     """Under CompleteRandomization, V̂(IPW) = V̂(Hájek) (both routed through
     the Welch path)."""
-    design = CompleteRandomization(window_length=1, seed=0)
+    design = CompleteRandomization(l=1, seed=0)
     T = 40
     W = design.sample(T)
     Y = SimpleDGP(mu=2.0, tau=1.0, sigma=1.0, seed=0).generate(W)
@@ -417,7 +417,7 @@ def test_ipw_under_bernoulli_still_uses_population_propensity():
     """Self-normalisation is opt-in for CR only — under Bernoulli, IPW
     uses the population propensity (so it differs from Hájek when there's
     a non-zero level)."""
-    bern = BernoulliDesign(window_length=1, p=0.5, seed=0)
+    bern = BernoulliDesign(l=1, p=0.5, seed=0)
     T = 40
     W = bern.sample(T)
     Y = SimpleDGP(mu=2.0, tau=1.0, sigma=1.0, seed=0).generate(W)
@@ -431,7 +431,7 @@ def test_ipw_under_bernoulli_still_uses_population_propensity():
 def test_complete_randomization_unbiasedness_of_hajek_under_simple_dgp():
     T, m = 40, 0
     tau = 1.0
-    design = CompleteRandomization(window_length=2)
+    design = CompleteRandomization(l=2)
     dgp = SimpleDGP(mu=0.0, tau=tau, sigma=1.0)
     estimates = []
     rng = np.random.default_rng(0)
@@ -451,7 +451,7 @@ def test_complete_randomization_unbiasedness_of_hajek_under_simple_dgp():
 # ===========================================================================
 
 def test_block_variance_requires_adaptive_block_design():
-    bern = BernoulliDesign(window_length=1)
+    bern = BernoulliDesign(l=1)
     W = np.zeros(10, dtype=int)
     Y = np.zeros(10)
     with pytest.raises(TypeError):
@@ -1004,7 +1004,7 @@ def test_inference_dispatches_block_variance_for_adaptive_block_design():
 def test_inference_dispatches_HACVariance_for_bernoulli_design():
     """For BernoulliDesign, inference must use HACVariance under the
     hood."""
-    design = BernoulliDesign(window_length=4, seed=0)
+    design = BernoulliDesign(l=4, seed=0)
     W = design.sample(80)
     Y = SimpleDGP(mu=1.0, tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design, m=3)
@@ -1029,7 +1029,7 @@ def test_inference_ci_matches_normal_ci_on_estimate_and_variance():
 def test_inference_does_not_mutate_user_estimator():
     """The user's estimator object must be unchanged after inference is
     called — inference deep-copies it internally."""
-    design = BernoulliDesign(window_length=2, seed=0)
+    design = BernoulliDesign(l=2, seed=0)
     W = design.sample(40)
     Y = SimpleDGP(tau=1.0, sigma=1.0, seed=0).generate(W)
     est = IPWEstimator(design, m=0)

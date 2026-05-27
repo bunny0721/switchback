@@ -41,7 +41,7 @@ class StratifiedHajekEstimator(BaseEstimator):
     Parameters
     ----------
     design : BernoulliDesign or CompleteRandomization
-        Window-structured design exposing ``window_length`` and
+        Window-structured design exposing ``l`` and
         ``window_index(T)``.
     m : int
         Burn-in length.
@@ -67,11 +67,11 @@ class StratifiedHajekEstimator(BaseEstimator):
             )
         if not isinstance(m, (int, np.integer)) or m < 0:
             raise ValueError(f"m must be a non-negative integer, got {m!r}")
-        l = int(design.window_length)
+        l = int(design.l)
         if int(m) > l:
             raise ValueError(
-                f"m must be ≤ design.window_length; got m={m}, "
-                f"window_length={l}. The burn-in cannot exceed the design's "
+                f"m must be ≤ design.l; got m={m}, "
+                f"l={l}. The burn-in cannot exceed the design's "
                 f"window length. m={l-1} is the natural 'in-window' choice."
             )
         self.design = design
@@ -87,7 +87,7 @@ class StratifiedHajekEstimator(BaseEstimator):
         T, m = W.size, self.m
         if T <= m:
             raise ValueError(f"need T > m; got T={T}, m={m}")
-        K = self.design.window_length
+        K = self.design.l
 
         # Group contributing periods by B(t) = #windows the window intersects,
         # and within each stratum split by arm.

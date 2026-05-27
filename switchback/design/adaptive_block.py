@@ -15,7 +15,7 @@ Unlike :class:`BernoulliDesign` / :class:`CompleteRandomization` (where a
 "window" is a *consecutive* run of periods sharing one coin), here each
 period gets its own draw and adjacent periods land in *different* blocks.
 The design's structure is in the joint distribution across blocks, not
-within consecutive windows. Hence ``window_length = 1`` in our framework.
+within consecutive windows. Hence ``l = 1`` in our framework.
 
 The design is generated block-by-block:
 
@@ -93,7 +93,7 @@ class AdaptiveBlockDesign(BaseDesign):
 
     Attributes
     ----------
-    window_length : int
+    l : int
         Always ``1``. Each period gets its own draw; the design's
         structure lives in the joint distribution across blocks.
 
@@ -111,7 +111,7 @@ class AdaptiveBlockDesign(BaseDesign):
 
     #: Each period gets its own assignment — adjacent periods are in
     #: different blocks, so there is no "within-window stickiness".
-    window_length: int = 1
+    l: int = 1
 
     def __init__(
         self,

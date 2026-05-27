@@ -169,7 +169,7 @@ class HACVariance:
     for window-structured designs (:class:`BernoulliDesign` and
     :class:`CompleteRandomization`).
 
-    Newey-West HAC on a length-``T/window_length`` per-window influence
+    Newey-West HAC on a length-``T/l`` per-window influence
     sequence. Default ``L = 1``; ``kernel = "truncated"``.
 
     .. note::
@@ -260,7 +260,7 @@ class HACVariance:
         self.estimate_ = float(est_copy.estimate_)
 
         # Build per-window influence-function sequence and HAC.
-        K = self.design.window_length
+        K = self.design.l
         if isinstance(self.estimator, IPWEstimator) and isinstance(
             self.design, BernoulliDesign
         ):
