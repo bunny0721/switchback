@@ -56,9 +56,9 @@ All designs expose `design.sample(T) -> np.ndarray` and a propensity oracle
 
 | class | parameters | what it does |
 |---|---|---|
-| `BernoulliDesign(l, p, seed)` | `l: int` (time window length), `p ∈ [0, 1]` | Partition `[0, T)` into windows of length `l`; within each window draw one `Bern(p)` coin and apply it to every period. `l=1` is per-period i.i.d. Bernoulli. |
-| `CompleteRandomization(l, seed)` | `l: int` (time window length) | Same window partition, but the treated count is **fixed**: exactly half of the `T/l` windows are treated, sampled without replacement. |
-| `AdaptiveBlockDesign(B, rho, seed)` | `B: int` (seasonal blocks), `rho ∈ [0.5, 1]` | Ni & Bojinov's model-assisted design. `B` seasonal blocks (e.g. 24 hours of the day) × `K = T/B` days. Block 0 sampled by CR; block `b ≥ 1` sampled adaptively given block `b−1` to maintain exactly `ρ·K` consecutive same-arm pairs. |
+| `BernoulliDesign(l, p, seed)` | `l: int` (time window length), `p ∈ [0, 1]` | Partition `[0, T)` into windows of length `l`; within each window draw one `Bern(p)` coin and apply it to every period. `l=1` is per-period i.i.d. Bernoulli. See Bojinov, Simchi-Levi & Zhao [1]. |
+| `CompleteRandomization(l, seed)` | `l: int` (time window length) | Same window partition, but the treated count is **fixed**: exactly half of the `T/l` windows are treated, sampled without replacement. See Ni, Zhao & Bojinov [2]. |
+| `AdaptiveBlockDesign(B, rho, seed)` | `B: int` (seasonal blocks), `rho ∈ [0.5, 1]` | Model-assisted design of Ni & Bojinov [3]. `B` seasonal blocks (e.g. 24 hours of the day) × `K = T/B` days. Block 0 sampled by CR; block `b ≥ 1` sampled adaptively given block `b−1` to maintain exactly `ρ·K` consecutive same-arm pairs. |
 
 ## DGPs (`switchback.dgp`)
 
@@ -84,6 +84,16 @@ no validity is guaranteed beyond a single window.
 For `AdaptiveBlockDesign` the natural configuration is `m = l = 1`
 (the implicit window length is 1; the design's `ρ` controls the consecutive
 same-arm propensity).
+
+The choice of `m` relative to the design's `l` selects between two
+strands of the literature:
+
+* **`m = l`** — the burn-in exactly fills a design window. Inference
+  follows the finite-population / design-based framework of Bojinov,
+  Simchi-Levi & Zhao [1].
+* **`m < l`** — the burn-in is shorter than a window; the estimator
+  uses periods in the "interior" of each window. Inference follows the
+  asymptotic / mixing-based framework of Hu & Wager [4].
 
 ## Inference (`switchback.decisions`)
 
@@ -150,8 +160,18 @@ the `m ≤ l` and dispatch invariants.
 
 ## References
 
-Ni, Tu and Iavor Bojinov. *Enhancing Efficiency and Robustness for
-Switchback Experiments: A Model-assisted Design and Analysis*.
+[1] Bojinov, Iavor, David Simchi-Levi, and Jinglong Zhao.
+*Design and Analysis of Switchback Experiments.* Management Science.
+
+[2] Ni, Tu, Jinglong Zhao, and Iavor Bojinov.
+*Switchback Experiments under Complete Randomization.*
+
+[3] Ni, Tu, and Iavor Bojinov.
+*Enhancing Efficiency and Robustness for Switchback Experiments:
+A Model-assisted Design and Analysis.*
+
+[4] Hu, Yuchen, and Stefan Wager.
+*Switchback Experiments under Geometric Mixing.*
 
 ## License
 
